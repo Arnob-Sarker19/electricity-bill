@@ -67,10 +67,8 @@ public class ElectricityBillSystemGUI extends JFrame {
 
         addBtn.addActionListener(e -> {
             String n = nameField.getText().trim();
-            if (n.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Name required");
-                return;
-            }
+            if (n.isEmpty()) { JOptionPane.showMessageDialog(this, "Name required"); return; }
+
             Customer c = new Customer(nextCustomerId++, n,
                     addrField.getText().trim(),
                     meterField.getText().trim(),
@@ -79,6 +77,8 @@ public class ElectricityBillSystemGUI extends JFrame {
             refreshCustomers();
             updateCustomerCombo();
             clearCustomerForm(nameField, addrField, meterField, phoneField);
+
+            saveAll(); // 🔑 Save immediately
         });
 
         JButton editCustomerBtn = new JButton("Edit Selected");
@@ -86,10 +86,7 @@ public class ElectricityBillSystemGUI extends JFrame {
 
         editCustomerBtn.addActionListener(e -> {
             int selectedRow = customerTable.getSelectedRow();
-            if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(this, "Select a customer to edit.");
-                return;
-            }
+            if (selectedRow == -1) { JOptionPane.showMessageDialog(this, "Select a customer to edit."); return; }
             int customerId = (int) customerModel.getValueAt(selectedRow, 0);
             Customer customer = customers.get(customerId);
             if (customer != null) {
@@ -101,6 +98,9 @@ public class ElectricityBillSystemGUI extends JFrame {
                 addBtn.setEnabled(false);
                 saveCustomerBtn.setEnabled(true);
 
+                // Remove previous listeners to avoid multiple firing
+                for (var l : saveCustomerBtn.getActionListeners()) saveCustomerBtn.removeActionListener(l);
+
                 saveCustomerBtn.addActionListener(saveEvent -> {
                     customer.name = nameField.getText().trim();
                     customer.address = addrField.getText().trim();
@@ -111,6 +111,8 @@ public class ElectricityBillSystemGUI extends JFrame {
                     clearCustomerForm(nameField, addrField, meterField, phoneField);
                     addBtn.setEnabled(true);
                     saveCustomerBtn.setEnabled(false);
+
+                    saveAll(); // 🔑 Save immediately
                 });
             }
         });
@@ -137,10 +139,7 @@ public class ElectricityBillSystemGUI extends JFrame {
 
         genBtn.addActionListener(e -> {
             Customer c = (Customer) custCombo.getSelectedItem();
-            if (c == null) {
-                JOptionPane.showMessageDialog(this, "No customer selected");
-                return;
-            }
+            if (c == null) { JOptionPane.showMessageDialog(this, "No customer selected"); return; }
             try {
                 int units = Integer.parseInt(unitsField.getText().trim());
                 Bill b = new Bill(nextBillId++, c.id, monthField.getText().trim(), units);
@@ -149,9 +148,9 @@ public class ElectricityBillSystemGUI extends JFrame {
                 refreshBills();
                 JOptionPane.showMessageDialog(this, b.toInvoiceText(c), "Bill Generated", JOptionPane.INFORMATION_MESSAGE);
                 clearBillForm(monthField, unitsField);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Invalid input: " + ex.getMessage());
-            }
+
+                saveAll(); // 🔑 Save immediately
+            } catch (Exception ex) { JOptionPane.showMessageDialog(this, "Invalid input: " + ex.getMessage()); }
         });
 
         JButton editBillBtn = new JButton("Edit Selected");
@@ -159,10 +158,7 @@ public class ElectricityBillSystemGUI extends JFrame {
 
         editBillBtn.addActionListener(e -> {
             int selectedRow = billTable.getSelectedRow();
-            if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(this, "Select a bill to edit.");
-                return;
-            }
+            if (selectedRow == -1) { JOptionPane.showMessageDialog(this, "Select a bill to edit."); return; }
             int billId = (int) billModel.getValueAt(selectedRow, 0);
             Bill bill = findBill(billId);
             if (bill != null) {
@@ -171,6 +167,9 @@ public class ElectricityBillSystemGUI extends JFrame {
                 unitsField.setText(String.valueOf(bill.units));
                 genBtn.setEnabled(false);
                 saveBillBtn.setEnabled(true);
+
+                // Remove previous listeners to avoid multiple firing
+                for (var l : saveBillBtn.getActionListeners()) saveBillBtn.removeActionListener(l);
 
                 saveBillBtn.addActionListener(saveEvent -> {
                     try {
@@ -183,9 +182,9 @@ public class ElectricityBillSystemGUI extends JFrame {
                         clearBillForm(monthField, unitsField);
                         genBtn.setEnabled(true);
                         saveBillBtn.setEnabled(false);
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(this, "Invalid input: " + ex.getMessage());
-                    }
+
+                        saveAll(); // 🔑 Save immediately
+                    } catch (Exception ex) { JOptionPane.showMessageDialog(this, "Invalid input: " + ex.getMessage()); }
                 });
             }
         });
@@ -207,10 +206,7 @@ public class ElectricityBillSystemGUI extends JFrame {
 
         export.addActionListener(e -> {
             int row = billTable.getSelectedRow();
-            if (row == -1) {
-                JOptionPane.showMessageDialog(this, "Select a bill first.");
-                return;
-            }
+            if (row == -1) { JOptionPane.showMessageDialog(this, "Select a bill first."); return; }
             int billId = (int) billModel.getValueAt(row, 0);
             Bill b = findBill(billId);
             if (b != null) {
@@ -220,9 +216,7 @@ public class ElectricityBillSystemGUI extends JFrame {
                     String fname = "bill_" + b.billId + ".txt";
                     Files.write(Paths.get(fname), txt.getBytes());
                     JOptionPane.showMessageDialog(this, "Exported to " + fname);
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage());
-                }
+                } catch (IOException ex) { JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage()); }
             }
         });
 
@@ -263,14 +257,12 @@ public class ElectricityBillSystemGUI extends JFrame {
     private void saveAll() {
         saveCustomers();
         saveBills();
-        JOptionPane.showMessageDialog(this, "Data saved.");
+        // Optional: JOptionPane.showMessageDialog(this, "Data saved.");
     }
 
     private void loadAll() {
         loadCustomers();
         loadBills();
-        refreshCustomers();
-        refreshBills();
     }
 
     private static Bill findBill(int id) {
@@ -282,14 +274,14 @@ public class ElectricityBillSystemGUI extends JFrame {
         java.util.List<String> lines = new ArrayList<>();
         lines.add("id,name,address,meter,phone");
         for (Customer c : customers.values()) lines.add(c.toCSV());
-        try { Files.write(Paths.get(CUSTOMERS_FILE), lines); } catch (IOException e) { }
+        try { Files.write(Paths.get(CUSTOMERS_FILE), lines); } catch (IOException e) { e.printStackTrace(); }
     }
 
     private static void saveBills() {
         java.util.List<String> lines = new ArrayList<>();
         lines.add("billId,customerId,month,units,energy,fixed,meter,tax,total");
         for (Bill b : bills) lines.add(b.toCSV());
-        try { Files.write(Paths.get(BILLS_FILE), lines); } catch (IOException e) { }
+        try { Files.write(Paths.get(BILLS_FILE), lines); } catch (IOException e) { e.printStackTrace(); }
     }
 
     private static void loadCustomers() {
@@ -303,7 +295,7 @@ public class ElectricityBillSystemGUI extends JFrame {
                 customers.put(c.id, c);
                 nextCustomerId = Math.max(nextCustomerId, c.id + 1);
             }
-        } catch (IOException e) { }
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
     private static void loadBills() {
@@ -317,14 +309,12 @@ public class ElectricityBillSystemGUI extends JFrame {
                 bills.add(b);
                 nextBillId = Math.max(nextBillId, b.billId + 1);
             }
-        } catch (IOException e) { }
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
     static class Customer {
         int id; String name, address, meterNumber, phone;
-        Customer(int id, String n, String a, String m, String p) {
-            this.id=id; name=n; address=a; meterNumber=m; phone=p;
-        }
+        Customer(int id, String n, String a, String m, String p) { id=id; name=n; address=a; meterNumber=m; phone=p; }
         public String toString() { return id + ": " + name; }
         String toCSV() { return id + "," + name + "," + address + "," + meterNumber + "," + phone; }
         static Customer fromCSV(String l) {
